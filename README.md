@@ -20,11 +20,26 @@ Subscribe to locally generated MQTT messages that report 5 minute Comed demand p
 
 * "MQTT client class (Python 3)" 2.1.0 provided on Debian Trixie by `python3-paho-mqtt`
 * "python-kasa" found at <https://github.com/python-kasa/python-kasa> and installed in a python virtual environment (venv).
+* `python3.14-venv` or similar, depending on your Python3 version.
 
 ## Deploying
 
 ### CLI
 
+
 ```text
+sudo apt install python3-paho-mqtt python3.14-venv # Or as appropriate for your OS/distro
+cd ~/Projects # or some convenient location.
+git clone git@github.com:HankB/comed-load-manager.git # or git clone https://github.com/HankB/comed-load-mamager.git
+cd comed-load-mamager # Why didn't this work?
+python3 -m venv --system-site-packages .venv
+source .venv/bin/activate
+pip install git+https://github.com/python-kasa/python-kasa.git
+python3 -c "from kasa import Discover; print('kasa ok')" # confirm library availability
+```
+
+```text
+export KASA_USERNAME="your TP-Link username"
+export KASA_PASSWORD="your TP-Link password"
 ./comed-load-manager.py
 ```
