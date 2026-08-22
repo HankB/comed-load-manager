@@ -6,7 +6,7 @@ Manage load based on Comed 5 minute price reports. This is intended to be used t
 
 ## AI/LLM warning
 
-This is developed with the asistance of Claude Sonnet 4.6 using the Web portan (<https://claude.ai/chat/f0607ebe-49e1-4b4c-828c-5296adb7132b for me but probably won't work for you.>)
+This is developed with the assistance of Claude Sonnet 4.6 using the Web portal (at <https://claude.ai/chat/f0607ebe-49e1-4b4c-828c-5296adb7132b for me but probably won't work for you.>)
 
 ## Status
 
