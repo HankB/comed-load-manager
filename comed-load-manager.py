@@ -14,13 +14,21 @@ Control logic:
   - Turn ON  when price has been consistently <= ON_THRESHOLD
                 for at least ON_DELAY_MINUTES
 
+Credentials for the Tapo plug are read from environment variables:
+  KASA_USERNAME
+  KASA_PASSWORD
+
 Designed to be extended with additional MQTT subscriptions (e.g. humidity).
 """
 
+import asyncio
 import json
-import time
 import logging
+import os
+import time
+
 import paho.mqtt.client as mqtt
+from kasa import Discover
 
 # =============================================================================
 # Configuration — adjust these before running
@@ -30,7 +38,7 @@ MQTT_BROKER      = "mqtt"
 MQTT_PORT        = 1883
 PRICE_TOPIC      = "HA/trixi/comed/5_minute_cost"
 
-PLUG_HOST        = "tpplug11"
+PLUG_HOST        = "tapoplug03"
 
 OFF_THRESHOLD    = 8.0    # cents/kWh — turn off load above this
 ON_THRESHOLD     = 8.0    # cents/kWh — candidate threshold for turning back on
@@ -49,6 +57,19 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
+# Suppress noisy debug output from the kasa library itself
+logging.getLogger("kasa").setLevel(logging.WARNING)
+
+# =============================================================================
+# Credentials
+# =============================================================================
+
+KASA_USERNAME = os.environ.get("KASA_USERNAME")
+KASA_PASSWORD = os.environ.get("KASA_PASSWORD")
+
+if not KASA_USERNAME or not KASA_PASSWORD:
+    raise RuntimeError("KASA_USERNAME and KASA_PASSWORD environment variables must be set")
+
 # =============================================================================
 # State
 # =============================================================================
@@ -64,21 +85,52 @@ class State:
 state = State()
 
 # =============================================================================
-# Plug control stubs — replace print() calls with kasa calls when ready
+# Plug control — kasa library calls
 # =============================================================================
 
+async def _kasa_query() -> bool:
+    """Connect to plug and return current on/off state."""
+    dev = await Discover.discover_single(
+        PLUG_HOST, username=KASA_USERNAME, password=KASA_PASSWORD
+    )
+    await dev.update()
+    return dev.is_on
+
+async def _kasa_set(turn_on: bool):
+    """Connect to plug and turn it on or off, then confirm with update()."""
+    dev = await Discover.discover_single(
+        PLUG_HOST, username=KASA_USERNAME, password=KASA_PASSWORD
+    )
+    if turn_on:
+        await dev.turn_on()
+    else:
+        await dev.turn_off()
+    await dev.update()
+    log.debug(f"Plug confirmed {'ON' if dev.is_on else 'OFF'} after command")
+
 def query_plug_state() -> bool:
-    """Return current plug state. Stub: assumes ON until kasa is wired up."""
-    log.info("STUB query_plug_state() → assuming ON")
-    return True
+    """Return current plug on/off state via kasa."""
+    try:
+        result = asyncio.run(_kasa_query())
+        log.info(f"Plug reports {'ON' if result else 'OFF'}")
+        return result
+    except Exception as e:
+        log.error(f"Failed to query plug state: {e} — assuming ON")
+        return True
 
 def turn_plug_off():
     log.info("DECISION: turning plug OFF (price above threshold)")
-    # TODO: asyncio.run(plug.turn_off()) via kasa
+    try:
+        asyncio.run(_kasa_set(turn_on=False))
+    except Exception as e:
+        log.error(f"Failed to turn plug OFF: {e}")
 
 def turn_plug_on():
     log.info("DECISION: turning plug ON (price below threshold for required period)")
-    # TODO: asyncio.run(plug.turn_on()) via kasa
+    try:
+        asyncio.run(_kasa_set(turn_on=True))
+    except Exception as e:
+        log.error(f"Failed to turn plug ON: {e}")
 
 # =============================================================================
 # Price logic
