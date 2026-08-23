@@ -14,9 +14,12 @@ Control logic:
   - Turn ON  when price has been consistently <= ON_THRESHOLD
                 for at least ON_DELAY_MINUTES
 
-Credentials for the Tapo plug are read from environment variables:
+Credentials for Tapo plugs are read from environment variables:
   KASA_USERNAME
   KASA_PASSWORD
+
+Older Kasa devices (e.g. energy-monitoring KP115/EP25) use an unauthenticated
+protocol — leave the environment variables unset for those.
 
 Designed to be extended with additional MQTT subscriptions (e.g. humidity).
 """
@@ -61,14 +64,14 @@ log = logging.getLogger(__name__)
 logging.getLogger("kasa").setLevel(logging.WARNING)
 
 # =============================================================================
-# Credentials
+# Credentials — required for Tapo, not needed for older Kasa devices
 # =============================================================================
 
 KASA_USERNAME = os.environ.get("KASA_USERNAME")
 KASA_PASSWORD = os.environ.get("KASA_PASSWORD")
 
 if not KASA_USERNAME or not KASA_PASSWORD:
-    raise RuntimeError("KASA_USERNAME and KASA_PASSWORD environment variables must be set")
+    log.warning("KASA_USERNAME/KASA_PASSWORD not set — assuming unauthenticated device (Kasa)")
 
 # =============================================================================
 # State
@@ -88,19 +91,24 @@ state = State()
 # Plug control — kasa library calls
 # =============================================================================
 
+async def _kasa_connect():
+    """Connect to plug, using credentials for Tapo or unauthenticated for Kasa."""
+    if KASA_USERNAME and KASA_PASSWORD:
+        return await Discover.discover_single(
+            PLUG_HOST, username=KASA_USERNAME, password=KASA_PASSWORD
+        )
+    else:
+        return await Discover.discover_single(PLUG_HOST)
+
 async def _kasa_query() -> bool:
     """Connect to plug and return current on/off state."""
-    dev = await Discover.discover_single(
-        PLUG_HOST, username=KASA_USERNAME, password=KASA_PASSWORD
-    )
+    dev = await _kasa_connect()
     await dev.update()
     return dev.is_on
 
 async def _kasa_set(turn_on: bool):
     """Connect to plug and turn it on or off, then confirm with update()."""
-    dev = await Discover.discover_single(
-        PLUG_HOST, username=KASA_USERNAME, password=KASA_PASSWORD
-    )
+    dev = await _kasa_connect()
     if turn_on:
         await dev.turn_on()
     else:

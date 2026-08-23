@@ -10,6 +10,8 @@ This is developed with the assistance of Claude Sonnet 4.6 using the Web portal 
 
 ## Status
 
+* 2026-08-23 tweak script to work with older Kasa plugs which do not require credentials.
+* 2026-08-23 testing actual on/off control on Pi 5 running Debian Forky.
 * 2026-08-21 working script with no actual control implemented. It just printe what decisions would be made.
 
 ## Outline
