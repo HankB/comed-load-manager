@@ -26,19 +26,24 @@ Subscribe to locally generated MQTT messages that report 5 minute Comed demand p
 
 ### CLI
 
+To install:
 
 ```text
 sudo apt install python3-paho-mqtt python3.14-venv # Or as appropriate for your OS/distro
 cd ~/Projects # or some convenient location.
-git clone git@github.com:HankB/comed-load-manager.git # or git clone https://github.com/HankB/comed-load-mamager.git
-cd comed-load-mamager # Why didn't this work?
+git clone git@github.com:HankB/comed-load-manager.git # or git clone https://github.com/HankB/comed-load-manager.git
+cd comed-load-manager # Why didn't this work?
 python3 -m venv --system-site-packages .venv
 source .venv/bin/activate
 pip install git+https://github.com/python-kasa/python-kasa.git
 python3 -c "from kasa import Discover; print('kasa ok')" # confirm library availability
 ```
 
+Once installed:
+
 ```text
+cd ~/Projects/comed-load-manager # or some convenient location.
+source .venv/bin/activate
 export KASA_USERNAME="your TP-Link username"
 export KASA_PASSWORD="your TP-Link password"
 ./comed-load-manager.py
