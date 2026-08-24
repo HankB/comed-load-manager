@@ -4,10 +4,10 @@
 # Deploys comed-load-manager to a target host.
 #
 # Usage:
-#   ansible-playbook deploy-comed-load-manager.yml -K -i <host>, -u <user>
+#   ansible-playbook deploy-comed-load-manager.yml -i <host>, -u <user>
 #
 # Variables (set in inventory, group_vars, or -e on the command line):
-#   deploy_user       — remote user (default: ansible_env.USER)
+#   deploy_user       — remote user (default: hbarta)
 #   project_dir       — where to clone the repo (default: ~/Projects/comed-load-manager)
 #   repo_url          — git repo URL
 #   enable_service    — whether to enable and start the service (default: true)
@@ -86,8 +86,8 @@
           systemctl --user daemon-reload
           systemctl --user enable --now comed-load-manager.service
       environment:
-        XDG_RUNTIME_DIR: "/run/user/{{ ansible_facts['uid'] }}"
-        DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ ansible_facts['uid'] }}/bus"
+        XDG_RUNTIME_DIR: "/run/user/{{ ansible_facts['user_uid'] }}"
+        DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ ansible_facts['user_uid'] }}/bus"
 
     - name: Remind about lingering
       ansible.builtin.debug:
@@ -100,5 +100,5 @@
       ansible.builtin.shell:
         cmd: systemctl --user daemon-reload
       environment:
-        XDG_RUNTIME_DIR: "/run/user/{{ ansible_facts['uid'] }}"
-        DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ ansible_facts['uid'] }}/bus"
+        XDG_RUNTIME_DIR: "/run/user/{{ ansible_facts['user_uid'] }}"
+        DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ ansible_facts['user_uid'] }}/bus"
