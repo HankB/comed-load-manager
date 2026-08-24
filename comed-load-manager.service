@@ -1,0 +1,22 @@
+[Unit]
+Description=ComEd load manager — controls smart plug based on 5-minute pricing
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Restart=on-failure
+RestartSec=30
+
+WorkingDirectory=%h/Projects/comed-load-manager
+ExecStart=%h/Projects/comed-load-manager/.venv/bin/python %h/Projects/comed-load-manager/comed-load-manager.py
+
+# Uncomment and populate to provide Tapo credentials.
+# Not needed for unauthenticated Kasa devices.
+#EnvironmentFile=%h/.config/comed-load-manager/credentials
+
+# Hardening
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target

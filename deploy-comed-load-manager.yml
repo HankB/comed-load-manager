@@ -1,0 +1,104 @@
+---
+# deploy-comed-load-manager.yml
+#
+# Deploys comed-load-manager to a target host.
+#
+# Usage:
+#   ansible-playbook deploy-comed-load-manager.yml -K -i <host>, -u <user>
+#
+# Variables (set in inventory, group_vars, or -e on the command line):
+#   deploy_user       — remote user (default: user running the playbook.)
+#   project_dir       — where to clone the repo (default: ~/Projects/comed-load-manager)
+#   repo_url          — git repo URL
+#   enable_service    — whether to enable and start the service (default: true)
+
+- name: Deploy comed-load-manager
+  hosts: all
+  vars:
+    deploy_user: "{{ ansible_env.USER }}"
+    project_dir: "{{ ansible_env.HOME }}/Projects/comed-load-manager"
+    repo_url: "https://github.com/HankB/comed-load-mamager.git"
+    enable_service: true
+
+  tasks:
+
+    - name: Ensure git is installed
+      become: true
+      ansible.builtin.apt:
+        name: git
+        state: present
+
+    - name: Ensure python3-venv and python3-paho-mqtt are installed
+      become: true
+      ansible.builtin.apt:
+        name:
+          - python3-venv
+          - python3-paho-mqtt
+        state: present
+
+    - name: Clone or update repo
+      ansible.builtin.git:
+        repo: "{{ repo_url }}"
+        dest: "{{ project_dir }}"
+        update: true
+
+    - name: Create venv with system site packages
+      ansible.builtin.command:
+        cmd: python3 -m venv --system-site-packages .venv
+        chdir: "{{ project_dir }}"
+        creates: "{{ project_dir }}/.venv/bin/python"
+
+    - name: Install python-kasa from git into venv
+      ansible.builtin.pip:
+        name: "git+https://github.com/python-kasa/python-kasa.git"
+        virtualenv: "{{ project_dir }}/.venv"
+        virtualenv_python: python3
+
+    - name: Create systemd user directory
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/.config/systemd/user"
+        state: directory
+        mode: "0755"
+
+    - name: Install systemd service unit
+      ansible.builtin.copy:
+        src: comed-load-manager.service
+        dest: "{{ ansible_env.HOME }}/.config/systemd/user/comed-load-manager.service"
+        mode: "0644"
+      notify: Reload systemd user daemon
+
+    - name: Create credentials config directory
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/.config/comed-load-manager"
+        state: directory
+        mode: "0700"
+
+    - name: Install credentials example (if credentials file absent)
+      ansible.builtin.copy:
+        src: credentials.example
+        dest: "{{ ansible_env.HOME }}/.config/comed-load-manager/credentials.example"
+        mode: "0600"
+
+    - name: Enable and start service
+      when: enable_service
+      ansible.builtin.systemd:
+        name: comed-load-manager.service
+        scope: user
+        enabled: true
+        state: started
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ ansible_facts['user_id'] }}"
+
+    - name: Remind about lingering
+      ansible.builtin.debug:
+        msg: >
+          If the service needs to run when {{ deploy_user }} is not logged in,
+          enable lingering: loginctl enable-linger {{ deploy_user }}
+
+  handlers:
+    - name: Reload systemd user daemon
+      ansible.builtin.systemd:
+        scope: user
+        daemon_reload: true
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ ansible_facts['user_id'] }}"
