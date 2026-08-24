@@ -4,16 +4,16 @@
 # Deploys comed-load-manager to a target host.
 #
 # Usage:
-#   ansible-playbook deploy-comed-load-manager.yml -K -i <host>, -u <user>
+#   ansible-playbook deploy-comed-load-manager.yml -i <host>, -u <user>
 #
 # Variables (set in inventory, group_vars, or -e on the command line):
-#   deploy_user       — remote user (default: user running the playbook.)
+#   deploy_user       — remote user (default: ansible_env.USER)
 #   project_dir       — where to clone the repo (default: ~/Projects/comed-load-manager)
 #   repo_url          — git repo URL
 #   enable_service    — whether to enable and start the service (default: true)
 
 - name: Deploy comed-load-manager
-  hosts: all
+  hosts: "{{ target_host | default('all') }}"
   vars:
     deploy_user: "{{ ansible_env.USER }}"
     project_dir: "{{ ansible_env.HOME }}/Projects/comed-load-manager"
@@ -81,13 +81,13 @@
 
     - name: Enable and start service
       when: enable_service
-      ansible.builtin.systemd:
-        name: comed-load-manager.service
-        scope: user
-        enabled: true
-        state: started
+      ansible.builtin.shell:
+        cmd: |
+          systemctl --user daemon-reload
+          systemctl --user enable --now comed-load-manager.service
       environment:
-        XDG_RUNTIME_DIR: "/run/user/{{ ansible_facts['user_id'] }}"
+        XDG_RUNTIME_DIR: "/run/user/{{ ansible_facts['uid'] }}"
+        DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ ansible_facts['uid'] }}/bus"
 
     - name: Remind about lingering
       ansible.builtin.debug:
@@ -97,8 +97,8 @@
 
   handlers:
     - name: Reload systemd user daemon
-      ansible.builtin.systemd:
-        scope: user
-        daemon_reload: true
+      ansible.builtin.shell:
+        cmd: systemctl --user daemon-reload
       environment:
-        XDG_RUNTIME_DIR: "/run/user/{{ ansible_facts['user_id'] }}"
+        XDG_RUNTIME_DIR: "/run/user/{{ ansible_facts['uid'] }}"
+        DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ ansible_facts['uid'] }}/bus"
