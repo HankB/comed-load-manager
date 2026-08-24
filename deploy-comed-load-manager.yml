@@ -4,7 +4,7 @@
 # Deploys comed-load-manager to a target host.
 #
 # Usage:
-#   ansible-playbook deploy-comed-load-manager.yml -i <host>, -u <user>
+#   ansible-playbook deploy-comed-load-manager.yml -K -i <host>, -u <user>
 #
 # Variables (set in inventory, group_vars, or -e on the command line):
 #   deploy_user       — remote user (default: ansible_env.USER)
