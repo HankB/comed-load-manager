@@ -10,6 +10,7 @@ This is developed with the assistance of Claude Sonnet 4.6 using the Web portal 
 
 ## Status
 
+* 2026-08-24 Working playbook, second try and still manually editing comments which Claude overlooked twice.
 * 2026-08-24 The first cut is deployed and working as desired.
 * 2026-08-24 Added Systemd service file, credentials template and Ansible playbook. At present the playbok fails at `[Enable and start service]` but the Systemd operations can be completed manually.
 * 2026-08-24 testing for several days is successful on a Pi 5 (until it crashed) and Pi CM4, both running Debian Forky. It is expected to work with Debian Trixie (stable) but these hosts just happened to be running Forky.
